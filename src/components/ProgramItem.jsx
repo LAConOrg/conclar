@@ -7,6 +7,7 @@ import ItemLink from "./ItemLink";
 import Location from "./Location";
 import Tag from "./Tag";
 import Participant from "./Participant";
+import PersonTag from "./PersonTag";
 import { ExpandableDetails } from "./ExpandableDetails";
 import configData from "../config.json";
 import PropTypes from "prop-types";
@@ -14,6 +15,15 @@ import { programTimePropType } from "../utils/ProgramTime";
 import { useState, useEffect, memo } from "react";
 import { LocalTime } from "../utils/LocalTime";
 import { venueForLocation } from "../utils/Venues";
+
+// Order tag pills the same way their categories appear in the filter lists
+// (TAGS.SEPARATE). Categories not in that list (e.g. uncategorized tags)
+// sort after all of them, in their original relative order.
+const tagCategoryOrder = configData.TAGS.SEPARATE.map((entry) => entry.PREFIX);
+function categoryRank(category) {
+  const index = tagCategoryOrder.indexOf(category);
+  return index === -1 ? tagCategoryOrder.length : index;
+}
 
 const ProgramItem = ({
   item,
@@ -72,23 +82,37 @@ const ProgramItem = ({
       ""
     );
 
+  const renderPeopleAsTags = configData.PEOPLE.RENDER_AS_TAGS;
+
   const tags = [];
-  const itemTags = item.tags.filter(
-    (tag) => !configData.TAGS.DONTLIST.includes(tag.category)
-  );
+  if (renderPeopleAsTags && item.people) {
+    item.people.forEach((person) => {
+      tags.push(
+        <PersonTag
+          key={"person_" + person.id}
+          person={person}
+          moderator={person.id === item.moderator}
+        />
+      );
+    });
+  }
+  const itemTags = item.tags
+    .filter((tag) => !configData.TAGS.DONTLIST.includes(tag.category))
+    .sort((a, b) => categoryRank(a.category) - categoryRank(b.category));
 
   for (const tag of itemTags) {
     tags.push(<Tag key={tag.value} tag={tag} />);
   }
 
   const people = [];
-  if (item.people) {
+  if (!renderPeopleAsTags && item.people) {
     item.people.forEach((person) => {
       people.push(
         <Participant
           key={person.id}
           person={person}
           moderator={person.id === item.moderator}
+          thumbnails={configData.PEOPLE.THUMBNAILS.SHOW_THUMBNAILS}
         />
       );
     });

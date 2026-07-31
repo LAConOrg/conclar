@@ -15,4 +15,16 @@ export class Format {
       );
     return raw;
   }
+
+  /**
+   * Convert a string into a lowercase, CSS class-safe slug.
+   * @param {string} raw
+   * @returns string
+   */
+  static slugify(raw) {
+    return raw
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
 }

@@ -55,6 +55,7 @@
   --search-border: var(--gray-400);
 
   --program-tags-fg: var(--gray-600);
+  --program-tags-bg: var(--gray-200);
   --program-expanded-bg: var(--gray-100);
 
   --link-fg: var(--brand-secondary-800);
@@ -1215,21 +1216,69 @@ div.switch-wrapper {
   color: var(--program-tags-fg);
 }
 
-.item-tag,
+.item-tags {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.item-description {
+  margin-top: 0.5rem;
+}
+
 .item-location {
   display: inline-block;
   margin-right: 0.5rem;
 }
 
-.item-location-venue {
-  opacity: 0.75;
+.item-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.6rem;
+  border-radius: 1rem;
+  background-color: var(--program-tags-bg);
 }
 
-.item-tags .item-tag:after {
-    content: ', ';
+/* Per-category pill colors. */
+.item-tag-tag {
+  background-color: var(--tag-tag-bg);
+  color: var(--tag-tag-fg);
 }
-.item-tags .item-tag:last-child:after {
-    content: '';
+
+.person-tag {
+  background-color: var(--tag-people-bg);
+  color: var(--tag-people-fg);
+}
+
+.person-tag a,
+.person-tag a:hover,
+.person-tag a:visited {
+  color: inherit;
+}
+
+.item-tag-area {
+  background-color: var(--tag-area-bg);
+  color: var(--tag-area-fg);
+}
+
+.item-tag-type {
+  background-color: var(--tag-format-bg);
+  color: var(--tag-format-fg);
+}
+
+.item-tag-environment {
+  background-color: var(--tag-environment-bg);
+  color: var(--tag-environment-fg);
+}
+
+.item-tag-availability {
+  background-color: var(--tag-availability-bg);
+  color: var(--tag-availability-fg);
+}
+
+.item-location-venue {
+  opacity: 0.75;
 }
 
 .tag-icon {
@@ -1238,7 +1287,8 @@ div.switch-wrapper {
   font-size: 1em;
   min-width: 1em;
   margin-right: 0.3em;
-  color: var(--program-tags-fg);
+  color: inherit;
+  opacity: 0.8;
 }
 
 .tag-icon-img {
@@ -1313,7 +1363,7 @@ div.switch-wrapper {
 /* fix link spacing */
 
 .item-links {
-  margin-top: 0.3rem;
+  margin-top: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;

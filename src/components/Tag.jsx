@@ -4,8 +4,11 @@ import Icon from './Icon'
 
 const Tag = ({ tag }) => {
   const iconConfig = configData.TAGS.ICONS?.[tag.value];
+  const categoryClass = tag.category
+    ? ` item-tag-${Format.slugify(tag.category)}`
+    : "";
   return (
-    <div className="item-tag">
+    <div className={`item-tag${categoryClass}`}>
       {iconConfig && (
         <Icon
           iconName={iconConfig.ICON_NAME}

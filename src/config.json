@@ -314,9 +314,10 @@
     "MODERATORS": {
       "MODERATOR_LABEL": "(moderator)"
     },
+    "RENDER_AS_TAGS": true,
     "THUMBNAILS": {
-      "SHOW_THUMBNAILS": true,
-      "SHOW_CHECKBOX": true,
+      "SHOW_THUMBNAILS": false,
+      "SHOW_CHECKBOX": false,
       "CHECKBOX_LABEL": "Show thumbnails",
       "DEFAULT_IMAGE": "compass.png"
     },
