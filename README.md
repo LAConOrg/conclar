@@ -86,7 +86,7 @@ The main place customisations go is the `src/config.json` file. Settings current
 - `NAVIGATION.MYSCHEDULE`: Label for user's personal schedule.
 - `NAVIGATION.INFO`: Label for the Information menu link._
 - `NAVIGATION.EXTRA`: An array of extra menu links. Each entry should take the form: `{ "LABEL": "Octocon Home", "URL": "https://octocon.com" }`. To have no extra links, set to `"EXTRA": []` or delete `EXTRA` entry altogether. Each entry may optionally include an icon, shown before the label:
-  - `ICON_NAME`: Name of a built-in icon, e.g. `{ "LABEL": "Octocon Home", "URL": "https://octocon.com", "ICON_NAME": "Home" }`. Available names: `Discord`, `Envelope`, `Facebook`, `Globe`, `Home`, `Instagram`, `Map`, `Mastodon`, `PaperPlane`, `Question`, `Sign`, `Ticket`, `Twitter`, `Youtube`. (To add more, see `iconsByName` in `src/components/NavIcon.js`.)
+  - `ICON_NAME`: Name of a built-in icon, in the form `"<pack>/<ExportName>"`, e.g. `{ "LABEL": "Octocon Home", "URL": "https://octocon.com", "ICON_NAME": "fa/FaHome" }`. Any icon from [react-icons](https://react-icons.github.io/react-icons/) is available - `<pack>` is the icon set's slug there (e.g. `fa`, `fa6`, `md`, `bs`), `<ExportName>` its exact export name (e.g. `FaMapSigns`). An unknown pack or export name fails the build. Only icons actually referenced from config.json are bundled.
   - `ICON_URL`: URL of an image to use as the icon instead, e.g. `{ "LABEL": "Octocon Home", "URL": "https://octocon.com", "ICON_URL": "https://octocon.com/favicon.png" }`. Use this for an icon that isn't in the built-in set. If both are given, `ICON_NAME` takes precedence.
 - `HELP_TEXT.WELCOME`: Text to display to new visitors who haven't selected any programme items.
 - `HELP_TEXT.SHARING`: Text to display when user has selected items, informing them of sharing options.
@@ -135,6 +135,7 @@ The main place customisations go is the `src/config.json` file. Settings current
 - `TAGS.DAY_TAG.SEARCHABLE`: Whether day tag list can be searched by typing.
 - `TAGS.DAY_TAG.HIDE`: If true, hide day tags drop-down. Day tags still shown on items if GENERATE true.
 - `TAGS.DONTLIST`: An array of tags not to list in the drop-downs and programme item tag lists.
+- `TAGS.ICONS`: An object mapping a tag's exact value (e.g. `"Availability:Streamed"`) to an icon shown before that tag wherever it's displayed on a programme item or person - see `NAVIGATION.EXTRA`'s `ICON_NAME` / `ICON_URL` above for the available icons. _e.g._, `"ICONS": { "Availability:Streamed": { "ICON_NAME": "fa/FaVideo" } }`. Tags without an entry here render as before, with no icon. Filter drop-downs are unaffected.
 - `HIDE_BEFORE.HIDE`: If true hide "hide before" dropdown. If false, show dropdown containing times to hide items before.
 - `HIDE_BEFORE.PLACEHOLDER`: Placeholder text for hide before drop-down.
 - `HIDE_BEFORE.TIMES`: Array of times to list in hide before drop-down. Each entry should be specified as follows: { "TIME": "time in hh:mm:ss format", "LABEL_24H": "24 hour label", "LABEL_12H": "12 hour label" }. Time should be in convention timezone.

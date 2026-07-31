@@ -1232,6 +1232,21 @@ div.switch-wrapper {
     content: '';
 }
 
+.tag-icon {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 1em;
+  min-width: 1em;
+  margin-right: 0.3em;
+  color: var(--program-tags-fg);
+}
+
+.tag-icon-img {
+  width: 1em;
+  height: 1em;
+  object-fit: contain;
+}
+
 
 /* To put duration on its own line, remove this bit. */
 .item-duration {

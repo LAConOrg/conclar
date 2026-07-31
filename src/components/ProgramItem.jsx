@@ -78,7 +78,7 @@ const ProgramItem = ({
   );
 
   for (const tag of itemTags) {
-    tags.push(<Tag key={tag.value} tag={tag.label} />);
+    tags.push(<Tag key={tag.value} tag={tag} />);
   }
 
   const people = [];
