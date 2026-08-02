@@ -3,8 +3,8 @@ import { useStoreState, useStoreActions } from "easy-peasy";
 
 const Timer = ({ tick }) => {
   const timeToNextFetch = useStoreState((state) => state.timeToNextFetch);
-  const updateTimeSinceLastFetch = useStoreActions(
-    (action) => action.updateTimeSinceLastFetch
+  const updateTimeSinceLastAttempt = useStoreActions(
+    (action) => action.updateTimeSinceLastAttempt
   );
   const onLine = useStoreState((state) => state.onLine);
   const setOnLine = useStoreActions((action) => action.setOnLine);
@@ -25,7 +25,7 @@ const Timer = ({ tick }) => {
   useEffect(() => {
     // Create JavaScript interval timer.
     let timer = setInterval(() => {
-      updateTimeSinceLastFetch();
+      updateTimeSinceLastAttempt();
       setOnLine(window.navigator.onLine);
 
       if (onLine && timeToNextFetch <= 0) {

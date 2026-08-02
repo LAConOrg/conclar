@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import configData from "../config.json";
 import { isSyncEnabled } from "../SyncService";
 import InfoPopup from "./InfoPopup";
+import OfflineDialog from "./OfflineDialog";
 import ScrollToTop from "./ScrollToTop";
 import Timer from "./Timer";
 import Debug from "./Debug";
@@ -138,6 +139,7 @@ const AppRoutes = () => {
           onDismiss={() => setShowSyncWarning(false)}
         />
       )}
+      <OfflineDialog />
     </div>
   ) : (
     <div className="App App--single-column">
@@ -157,11 +159,11 @@ const AppRoutes = () => {
     </div>
   );
 
-  const fetchProgram = useStoreActions((actions) => actions.fetchProgram);
+  const bootProgram = useStoreActions((actions) => actions.bootProgram);
   const fetchProfile = useStoreActions((actions) => actions.fetchProfile);
 
   useEffect(() => {
-    fetchProgram(true);
+    bootProgram();
     fetchProfile();
     // eslint-disable-next-line
   }, []);

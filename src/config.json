@@ -1,22 +1,26 @@
 {
   "APP_ID": "LA2026",
   "APP_TITLE": "LACon V Program Guide",
+  "MANIFEST": {
+    "SHORT_NAME": "LACon V",
+    "THEME_COLOR": "#000000",
+    "BACKGROUND_COLOR": "#ffffff",
+    "ICONS": [
+      { "SRC": "favicon.png", "SIZES": "32x32", "TYPE": "image/png" },
+      { "SRC": "logo-medium-300x202.png", "SIZES": "300x202", "TYPE": "image/png" }
+    ]
+  },
   "DATA_URLS": {
     "SCHEDULE": "/data/schedule.json",
     "PEOPLE": "/data/participants.json"
   },
   "FETCH_OPTIONS": {
-    "cache": "reload",
-    "credentials": "omit",
-    "headers": {
-      "Origin": "http://guide.lacon.org"
-    }
+    "cache": "no-cache",
+    "credentials": "omit"
   },
   "FETCH_OPTIONS_FIRST": {
-    "credentials": "omit",
-    "headers": {
-      "Origin": "http://guide.lacon.org"
-    }
+    "cache": "no-cache",
+    "credentials": "omit"
   },
   "TIMEZONE": "America/Los_Angeles",
   "TIMEZONECODE": "PDT",
@@ -393,6 +397,19 @@
   "TIMER": {
     "FETCH_INTERVAL_MINS": 30,
     "TIMER_TICK_SECS": 15
+  },
+  "OFFLINE": {
+    "ENABLED": true,
+    "LABEL": "Offline",
+    "HEADING": "You're offline",
+    "TITLE": "Showing the last schedule we downloaded",
+    "LAST_CHECKED": "Last checked @relative (@absolute).",
+    "LAST_CHECKED_UNKNOWN": "We haven't managed to check for updates yet.",
+    "SELECTIONS_SYNCED": "Changes to My Schedule are saved and will sync when you're back online.",
+    "SELECTIONS_LOCAL": "Changes to My Schedule are saved on this device.",
+    "RECHECK_LABEL": "Check again",
+    "RECHECKING_LABEL": "Checking\u2026",
+    "DISMISS_LABEL": "Close"
   },
   "DEBUG_MODE": {
     "ENABLE": false,

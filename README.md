@@ -69,10 +69,24 @@ The main place customisations go is the `src/config.json` file. Settings current
 - `APP_TITLE`: The title to appear at the top of the webpage, and in the browser window title.
 - `PROGRAM_DATA_URL` / `PEOPLE_DATA_URL`: Legacy config for the addresses of the files containing programme and people data, in the bare-array format. If these are the same, both will be read from one file, but programme data must come before people data. Mutually exclusive with `DATA_URLS`.
 - `DATA_URLS`: The address(es) of the schedule/people data files, in the self-describing `schemaVersion` object format. Specify `{ "COMBINED": "..." }` for both from one file, or `{ "SCHEDULE": "...", "PEOPLE": "..." }` for separate files — specifying both `COMBINED` and `SCHEDULE`/`PEOPLE` together, or only one of `SCHEDULE`/`PEOPLE`, is a config error. Mutually exclusive with `PROGRAM_DATA_URL`/`PEOPLE_DATA_URL`. See [docs/conclar_file_specs.md](docs/conclar_file_specs.md) for the fetched file format.
-- `FETCH_OPTIONS`: A JSON object containing options to pass when fetching data. See JavaScript [fetch()](https://developer.mozilla.org/en-US/docs/Web/API/fetch) documentation for available valies. Typical examples:
-  - `"cache": "reload"` - Should always be used so beck end program updates will be read.
+- `MANIFEST`: Optional. Controls the web app manifest generated at build time, which lets users install the guide to their home screen.
+  - `MANIFEST.SHORT_NAME`: Name shown under the icon on the home screen. Defaults to `APP_TITLE`.
+  - `MANIFEST.THEME_COLOR`: Colour of the browser/OS chrome shown around the installed app. Defaults to `#000000`.
+  - `MANIFEST.BACKGROUND_COLOR`: Background colour of the splash screen shown while the app loads after being installed. Defaults to `#ffffff`.
+  - `MANIFEST.ICONS`: Array of icons for the home screen and app switcher. Each entry needs `SRC` (a file in `public/`), `SIZES` (e.g. `"32x32"`) and `TYPE` (e.g. `"image/png"`) — a build fails if any of the three is missing. `PURPOSE` (e.g. `"maskable"`) is optional.
+- `FETCH_OPTIONS`: A JSON object containing options to pass when fetching data. See JavaScript [fetch()](https://developer.mozilla.org/en-US/docs/Web/API/fetch) documentation for available values. Typical examples:
+  - `"cache": "no-cache"` - Recommended. Always contacts the server, but sends a conditional request, so data that hasn't changed comes back as an empty `304` instead of the full payload. Use `"reload"` instead only if your host doesn't send `ETag` or `Last-Modified` headers *and* also sends a long `max-age` - `reload` re-downloads everything on every check.
   - `"credentials": "omit"` - Use if source is not using a certificate from a recognised authority, e.g. a self signed cert.
-  - `"headers": { "Origin": "http://example.com" }` - Headers sent in the fetch. Origin may be required for Cross Origin Resource Sharing (CORS).
+- `FETCH_OPTIONS_FIRST`: As `FETCH_OPTIONS`, but used for the first fetch after the page loads. Historically this omitted `cache` so the browser's HTTP cache could stand in for offline support; that job now belongs to `OFFLINE` (see [Offline support](#offline-support)), so there is no longer a reason for the two to differ.
+- `OFFLINE`: Offline support. See [Offline support](#offline-support) for what is and isn't cached.
+  - `OFFLINE.ENABLED`: Whether to build a service worker that caches the app shell. `false` builds a *tombstone* service worker that removes any previously installed one. This is useful for clearing out a broken service worker (see below)
+  - `OFFLINE.LABEL`: Label on the offline indicator.
+  - `OFFLINE.HEADING` / `OFFLINE.TITLE`: Heading and summary line in the offline dialog.
+  - `OFFLINE.LAST_CHECKED`: Shown when a previous check succeeded. `@relative` is replaced with e.g. "40 minutes ago", `@absolute` with the clock time.
+  - `OFFLINE.LAST_CHECKED_UNKNOWN`: Shown when no check has ever succeeded.
+  - `OFFLINE.SELECTIONS_SYNCED` / `OFFLINE.SELECTIONS_LOCAL`: Reassurance about My Schedule changes, for signed-in and signed-out users respectively.
+  - `OFFLINE.RECHECK_LABEL` / `OFFLINE.RECHECKING_LABEL`: Labels on the dialog's recheck button, at rest and while a check is in progress.
+  - `OFFLINE.DISMISS_LABEL`: Label on the dialog's close button.
 - `TIMEZONE`: The name of the timezone where your convention takes place. Viewers outside convention timezone will see times in convention time, and their local time below it.
 - `TIMEZONE_CODE`: The short code for the convention timezone. Set to blank to get browser code for timezone (not recommended, as it may not select the most elegant short code).
 - `INTERACTIVE`: Set to `false` to get a non-interactive, expanded view of the schedule. The info page is also included, but not the participant list, individual participant pages, or individual item pages (regardless of the `PERMALINK.SHOW_PERMALINK` setting).
@@ -236,7 +250,72 @@ The convention information page is composed in Markdown using the provided file,
 
 To change the styling, edit `src/App.css`. If you want to just change the basic colours, edit the `--brand-tint`, `--gray-tint` and `--info-tint` values. You can make them all the same, or choose different values for more control. If you want more control over the specific shades, you can manually edit the `--<type>-<nnn>` variables in Tier 2.
 
-To change the home screen app name, edit `public/manifest.json`.
+To change the home screen app name and icons, edit the `MANIFEST` block in `config.json` — see above.
+
+## Offline support
+
+With `OFFLINE.ENABLED` set to `true`, the guide keeps working with no network at all: the app loads, and shows the schedule, participants and information page as they were at the last successful check. Selecting items in My Schedule also works offline, and syncs when the connection returns.
+
+Be very careful about turning this on. A misconfigured service worker or deployment configuration can lead to a broken page that the user can't get rid of even by refreshing the page.
+
+### What is cached
+
+Everything the build emits is cached by the service worker. Everything fetched at runtime is stored in IndexedDB by the app. Nothing else is cached.
+
+| | Cached by | Contents |
+|---|---|---|
+| App shell | Service worker (Cache Storage) | Every file in `build/`, except the URLs named in `DATA_URLS` / `PROGRAM_DATA_URL` / `PEOPLE_DATA_URL` / `INFORMATION.MARKDOWN_URL`, and `robots.txt` |
+| Schedule, people, info page | The app (IndexedDB) | The raw response text, plus its fingerprint and the time it was fetched |
+| Login, profile, selection sync | Nothing | Always live; the sync API is never cached |
+
+### How updates work across deploys
+
+There is one cache, updated incrementally. On install the worker fetches only the files whose contents changed since the last build; on activate it drops the ones that are no longer part of the app.
+
+Files under `assets/` are exempt from this bookkeeping, because their names already contain a content hash — a new build gives them a new name, so a copy already in the browser's HTTP cache is guaranteed to be the right one.
+
+The new worker takes over immediately but does **not** reload the page. So:
+
+- A tab left open across a deploy keeps running the code it already loaded.
+- Users get the new shell on their next navigation or refresh. There is no update prompt and no forced reload.
+- Someone who never closes the app could stay on an old shell for a while. That is accepted: schedule data refreshes independently.
+
+When an old tab tries to load a page that is lazily loaded as a result of the code splitting (e.g. the information page), the page is reloaded. The user sees a blink and loses their scroll position. It reloads at most once per ten seconds, so a half-finished deploy can't put a tab into a reload loop.
+
+Data is on its own schedule entirely: fetched on every page load, then every `TIMER.FETCH_INTERVAL_MINS`, and again whenever the browser reports coming back online. Refreshing the page always performs a real check, and the offline dialog has a recheck button — so a user who knows they've just reconnected doesn't have to wait out the poll. We do not rely on the browser's `online` event because this can be thrown by captive portals.
+
+### Server requirements
+
+| Path | Required | Why |
+|---|---|---|
+| `/sw.js` | `Cache-Control: no-cache` | A cached service worker script can pin users to an old shell. The app registers with `updateViaCache: "none"` as a backstop, but set the header too. |
+| `/index.html` | `Cache-Control: no-cache` | So a user with no service worker still gets the current build. |
+| `/assets/*` | `Cache-Control: public, max-age=31536000, immutable` | Filenames are content-hashed, so they can be cached forever. |
+| Data URLs | `ETag` or `Last-Modified` | Lets `"cache": "no-cache"` return a `304` instead of the whole payload. Without it, every check re-downloads everything. |
+
+### Known limitations
+
+- Safari on iOS deletes all offline data after 7 days without a visit — IndexedDB, caches, and the service worker registration alike. Someone who loads the guide a week before the convention and doesn't open it again arrives with nothing cached.
+- Offline data is not requested as persistent storage, so a browser under genuine storage pressure may evict it.
+
+### The kill switch
+
+If a bad service worker reaches users, set `OFFLINE.ENABLED` to `false` and redeploy. The build then emits a self-destroying `sw.js` that unregisters itself, reloads open tabs, and deletes the caches. Browsers will pick it up on their next navigation.
+
+It has to be deployed, not deleted: if `sw.js` simply returns a 404, the existing registration survives and users stay stuck on it.
+
+Note that it clears *every* cache on the origin, not only this app's. If you host two ConClár instances on one origin, taking the kill switch to one of them empties the other's shell too; it will be refetched on the next visit.
+
+### Testing checklist
+
+Offline behaviour cannot be tested with `npm start` — the service worker is only generated by `npm run build`, and in development the app actively unregisters any it finds. Use a build and preview:
+
+```
+npm run build
+npm run preview
+```
+
+To go offline, stop the preview server — don't use the DevTools "Offline" setting.*Press `Ctrl+C` in the terminal running `npm run preview`, then reload the page. The browser stays online while the origin becomes unreachable, which is the closest simple equivalent to real offline and exercises the service worker properly.
 
 ## Hosting
 

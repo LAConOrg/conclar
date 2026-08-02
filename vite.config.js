@@ -5,8 +5,9 @@ import { validateConfigPlugin } from "./vite-plugins/validateConfigPlugin.js";
 import { injectDataPreloads } from "./vite-plugins/injectDataPreloads.js";
 import { prerenderFooterPlugin } from "./vite-plugins/prerenderFooterPlugin.js";
 import { configIconsPlugin } from "./vite-plugins/configIconsPlugin.js";
+import { pwaPlugin } from "./vite-plugins/pwaPlugin.js";
 
-const configPath = path.resolve(__dirname, "src/config.json");
+const configPath = path.resolve(import.meta.dirname, "src/config.json");
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -16,6 +17,7 @@ export default defineConfig({
     configIconsPlugin(configPath),
     injectDataPreloads(configPath),
     prerenderFooterPlugin(configPath),
+    pwaPlugin(configPath),
   ],
   server: {
     port: 3000,

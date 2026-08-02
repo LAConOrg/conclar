@@ -411,6 +411,9 @@ export class ProgramData {
    */
   static async fetchText(url, fetchOptions) {
     const res = await fetch(url, fetchOptions);
+    if (!res.ok) {
+      throw new Error(`Fetch of ${url} failed: ${res.status}`);
+    }
     const text = await res.text();
     return text;
   }
@@ -452,6 +455,61 @@ export class ProgramData {
   }
 
   /**
+   * The URLs the program and people data are fetched from, in the order their
+   * raw contents appear in `rawParts`.
+   *
+   * @returns {string[]}
+   */
+  static dataSources() {
+    if (configData.DATA_URLS) {
+      const { COMBINED, SCHEDULE, PEOPLE } = configData.DATA_URLS;
+      return COMBINED ? [COMBINED] : [SCHEDULE, PEOPLE];
+    }
+    // Legacy path: always the v1 bare-array format.
+    if (configData.PROGRAM_DATA_URL === configData.PEOPLE_DATA_URL) {
+      return [configData.PROGRAM_DATA_URL];
+    }
+    return [configData.PROGRAM_DATA_URL, configData.PEOPLE_DATA_URL];
+  }
+
+  /**
+   * Turn the raw text of each data source into program and people arrays.
+   *
+   * @param {string[]} rawParts Raw text, in dataSources() order.
+   * @returns {{program: array, people: array}}
+   */
+  static decodeRawParts(rawParts) {
+    if (configData.DATA_URLS) {
+      if (configData.DATA_URLS.COMBINED) {
+        return this.parseSchemaVersionedData(rawParts[0], "data");
+      }
+      return {
+        program: this.parseSchemaVersionedData(rawParts[0], "schedule").program,
+        people: this.parseSchemaVersionedData(rawParts[1], "people").people,
+      };
+    }
+    if (rawParts.length === 1) {
+      const [program, people] = JsonParse.extractJson(rawParts[0]);
+      return { program, people };
+    }
+    return {
+      program: JsonParse.extractJson(rawParts[0])[0],
+      people: JsonParse.extractJson(rawParts[1])[0],
+    };
+  }
+
+  /**
+   * Decode and process raw source text into the shape the store holds.
+   *
+   * @param {string[]} rawParts Raw text, in dataSources() order.
+   * @returns {object}
+   */
+  static processRawParts(rawParts) {
+    const { program, people } = this.decodeRawParts(rawParts);
+    return this.processData(program, people);
+  }
+
+  /**
    * Fetch and parse program and people.
    *
    * Throws on fetch or parse errors; the caller is responsible for surfacing
@@ -461,8 +519,9 @@ export class ProgramData {
    * @param {boolean} firstTime
    * @param {string} [previousFingerprint] Fingerprint of the previously
    *   fetched payload (see fingerprint()).
-   * @returns {{fingerprint: string, data: object|null}} `data` is null when
-   *   the fetched payload is unchanged from the previous fetch.
+   * @returns {{fingerprint: string, data: object|null, rawParts: string[]|null}}
+   *   `data` and `rawParts` are null when the fetched payload is unchanged
+   *   from the previous fetch.
    */
   static async fetchData(firstTime, previousFingerprint) {
     console.log("Fetching:", firstTime ? "First time" : "Refreshing");
@@ -470,38 +529,9 @@ export class ProgramData {
       ? configData.FETCH_OPTIONS_FIRST
       : configData.FETCH_OPTIONS;
 
-    let program, people, rawParts;
-    if (configData.DATA_URLS) {
-      const { COMBINED, SCHEDULE, PEOPLE } = configData.DATA_URLS;
-      if (COMBINED) {
-        const raw = await this.fetchText(COMBINED, fetchOptions);
-        rawParts = [raw];
-        ({ program, people } = this.parseSchemaVersionedData(raw, "data"));
-      } else {
-        const [rawSchedule, rawPeople] = await Promise.all([
-          this.fetchText(SCHEDULE, fetchOptions),
-          this.fetchText(PEOPLE, fetchOptions),
-        ]);
-        rawParts = [rawSchedule, rawPeople];
-        program = this.parseSchemaVersionedData(rawSchedule, "schedule").program;
-        people = this.parseSchemaVersionedData(rawPeople, "people").people;
-      }
-    } else {
-      // Legacy path: always the v1 bare-array format.
-      if (configData.PROGRAM_DATA_URL === configData.PEOPLE_DATA_URL) {
-        const raw = await this.fetchText(configData.PROGRAM_DATA_URL, fetchOptions);
-        rawParts = [raw];
-        [program, people] = JsonParse.extractJson(raw);
-      } else {
-        const [rawProgram, rawPeople] = await Promise.all([
-          this.fetchText(configData.PROGRAM_DATA_URL, fetchOptions),
-          this.fetchText(configData.PEOPLE_DATA_URL, fetchOptions),
-        ]);
-        rawParts = [rawProgram, rawPeople];
-        program = JsonParse.extractJson(rawProgram)[0];
-        people = JsonParse.extractJson(rawPeople)[0];
-      }
-    }
+    const rawParts = await Promise.all(
+      this.dataSources().map((url) => this.fetchText(url, fetchOptions))
+    );
 
     // A background refresh commonly comes back byte-identical to what's
     // already loaded. Returning early keeps the previously processed arrays
@@ -509,10 +539,9 @@ export class ProgramData {
     // re-rendering are skipped for data that hasn't actually changed.
     const fingerprint = await ProgramData.fingerprint(rawParts);
     if (fingerprint === previousFingerprint) {
-      return { fingerprint, data: null };
+      return { fingerprint, data: null, rawParts: null };
     }
 
-    const data = ProgramData.processData(program, people);
-    return { fingerprint, data };
+    return { fingerprint, data: this.processRawParts(rawParts), rawParts };
   }
 }

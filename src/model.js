@@ -4,6 +4,13 @@ import { ProgramSelection } from "./ProgramSelection";
 import { LocalTime } from "./utils/LocalTime";
 import { collectBoundaries } from "./utils/ProgramTime";
 import * as SyncService from "./SyncService";
+import {
+  readRecord,
+  writeRecord,
+  PROGRAMME_KEY,
+  INFO_KEY,
+  LAST_CHECKED_KEY,
+} from "./utils/OfflineStore";
 import configData from "./config.json";
 
 function getSelectedIdsFromStore(selectionStore) {
@@ -61,8 +68,21 @@ const model = {
   // contents actually differ - letting it skip reprocessing (and reusing
   // the same array references) for a byte-identical background refresh.
   lastFetchFingerprint: null,
+  // When we last reached the server successfully. Restored from the offline
+  // store on boot, so it survives a reload with no network, and shown to the
+  // user in the offline dialog.
   lastFetchTime: null,
-  timeSinceLastFetch: null,
+  // When we last *tried*, successful or not. Only used to schedule the next
+  // poll - keeping it separate from lastFetchTime stops a failed attempt from
+  // leaving the timer permanently overdue and retrying every tick.
+  lastAttemptTime: null,
+  timeSinceLastAttempt: null,
+  // Set when a programme-data fetch fails, cleared when one succeeds. This,
+  // not navigator.onLine, is what the offline indicator reflects: it's the
+  // only signal that's true on a captive portal or a wifi network with no
+  // working uplink.
+  dataFetchFailed: false,
+  showOfflineDialog: false,
   helpTextDismissed: (() => {
     const dismissed = localStorage.getItem("help_text_dismissed_" + configData.APP_ID);
     return (dismissed) ? JSON.parse(dismissed) : {};
@@ -96,27 +116,66 @@ const model = {
   darkMode: localStorage.getItem("dark_mode") ? localStorage.getItem("dark_mode") : 'browser',
   showSyncWarning: false,
   // Thunks
+
+  /**
+   * Cache-then-network startup.
+   *
+   * Start with the offline store the moment it's read, then do a network fetch.
+   * This means that on hotel wifi we see the cached schedule instantly, rather
+   * than a spinner, but we still fetch to get the latest schedule which will
+   * show soon after.
+   */
+  bootProgram: thunk(async (actions, payload, { getState }) => {
+    const sources = ProgramData.dataSources();
+    const [cached, lastChecked] = await Promise.all([
+      readRecord(PROGRAMME_KEY, sources),
+      readRecord(LAST_CHECKED_KEY, sources),
+    ]);
+    if (cached && getState().program.length === 0) {
+      try {
+        actions.setData(ProgramData.processRawParts(cached.rawParts));
+        actions.setLastFetchFingerprint(cached.fingerprint);
+        actions.setLastFetchTime(lastChecked?.checkedAt ?? cached.fetchedAt);
+        actions.setIsLoadingFalse();
+      } catch (e) {
+        // Cached bytes we can't decode are no use; the network fetch below
+        // will replace them.
+        console.warn("Could not use cached programme data:", e);
+      }
+    }
+    await actions.fetchProgram(true);
+  }),
+
   fetchProgram: thunk(async (actions, firstTime, { getState }) => {
+    actions.recordFetchAttempt();
     try {
       // data is null when the fetch came back byte-identical to what's
       // already loaded - nothing to commit, but the fetch itself still
       // succeeded.
-      const { fingerprint, data } = await ProgramData.fetchData(
+      const { fingerprint, data, rawParts } = await ProgramData.fetchData(
         firstTime,
         getState().lastFetchFingerprint
       );
+      const checkedAt = new Date().getTime();
+      const sources = ProgramData.dataSources();
       if (data) {
         actions.setData(data);
         actions.setLastFetchFingerprint(fingerprint);
+        // Not awaited: the user has their data, and whether we manage to
+        // stash a copy for next time shouldn't hold up the render.
+        writeRecord(PROGRAMME_KEY, { rawParts, fingerprint, fetchedAt: checkedAt }, sources);
       }
+      writeRecord(LAST_CHECKED_KEY, { checkedAt }, sources);
       actions.setLoadError(null);
-      actions.resetLastFetchTime(firstTime);
-      actions.updateTimeSinceLastFetch();
+      actions.setDataFetchFailed(false);
+      actions.setLastFetchTime(checkedAt);
     } catch (e) {
       console.error("Failed to load program data:", e);
-      // Only surface the error on the initial load. A failed background
-      // refresh should leave the already-displayed data in place.
-      if (firstTime) {
+      actions.setDataFetchFailed(true);
+      // A failed refresh leaves the already-displayed data in place and just
+      // raises the offline indicator. Only when there's nothing at all to
+      // show does this become a hard error.
+      if (getState().program.length === 0) {
         actions.setLoadError(e.message || String(e));
       }
     } finally {
@@ -124,13 +183,28 @@ const model = {
     }
   }),
 
-  // Info-page markdown, fetched on first visit.
+  // Info-page markdown, fetched on first visit. Cached in the offline store
+  // alongside the programme data - it's runtime content, so the service
+  // worker deliberately doesn't handle it.
   fetchInfo: thunk(async (actions, payload, { getState }) => {
     if (getState().info !== "") {
       return;
     }
+    // INFORMATION is optional - without a markdown URL there's no info page
+    // to fetch or cache.
+    const markdownUrl = configData.INFORMATION?.MARKDOWN_URL;
+    if (!markdownUrl) {
+      return;
+    }
+    const sources = [markdownUrl];
+    const cached = await readRecord(INFO_KEY, sources);
+    if (cached) {
+      actions.setInfo(cached.text);
+    }
     try {
-      actions.setInfo(await ProgramData.fetchInfo(true));
+      const text = await ProgramData.fetchInfo(true);
+      actions.setInfo(text);
+      writeRecord(INFO_KEY, { text, fetchedAt: new Date().getTime() }, sources);
     } catch (e) {
       console.error("Failed to load info page:", e);
     }
@@ -235,16 +309,27 @@ const model = {
   setLoadError: action((state, error) => {
     state.loadError = error;
   }),
-  resetLastFetchTime: action((state, firstTime) => {
-    const milisecondsPerMinute = 60000;
-    const offset = firstTime ? configData.TIMER.FETCH_INTERVAL_MINS * milisecondsPerMinute : 0;
-    state.lastFetchTime = new Date(new Date() - offset).getTime();
+  setLastFetchTime: action((state, lastFetchTime) => {
+    state.lastFetchTime = lastFetchTime;
   }),
-  updateTimeSinceLastFetch: action((state) => {
+  recordFetchAttempt: action((state) => {
+    state.lastAttemptTime = new Date().getTime();
+    state.timeSinceLastAttempt = 0;
+  }),
+  updateTimeSinceLastAttempt: action((state) => {
+    if (state.lastAttemptTime === null) {
+      return;
+    }
     const milisecondsPerSec = 1000;
-    state.timeSinceLastFetch = Math.floor(
-      (new Date().getTime() - state.lastFetchTime) / milisecondsPerSec
+    state.timeSinceLastAttempt = Math.floor(
+      (new Date().getTime() - state.lastAttemptTime) / milisecondsPerSec
     );
+  }),
+  setDataFetchFailed: action((state, failed) => {
+    state.dataFetchFailed = failed;
+  }),
+  setShowOfflineDialog: action((state, show) => {
+    state.showOfflineDialog = show;
   }),
   setHelpTextDismissed: action((state, helpTextDismissed) => {
     state.helpTextDismissed = helpTextDismissed;
@@ -286,7 +371,12 @@ const model = {
     const wasOffline = !getState().onLine;
     actions._setOnLine(onLine);
     if (wasOffline && onLine) {
-      await actions.syncSelections({ fullSync: true });
+      // Coming back into signal shouldn't mean waiting out the rest of the
+      // 30-minute poll to find out the schedule moved.
+      await Promise.all([
+        actions.syncSelections({ fullSync: true }),
+        actions.fetchProgram(false),
+      ]);
     }
   }),
   _setOnLine: action((state, onLine) => {
@@ -433,7 +523,9 @@ const model = {
 
   // Computed.
   timeToNextFetch: computed((state) => {
-    return configData.TIMER.FETCH_INTERVAL_MINS * 60 - state.timeSinceLastFetch;
+    return (
+      configData.TIMER.FETCH_INTERVAL_MINS * 60 - (state.timeSinceLastAttempt ?? 0)
+    );
   }),
   timeZoneIsShown: computed((state) => {
     return (
