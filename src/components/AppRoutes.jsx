@@ -34,6 +34,10 @@ const AppRoutes = () => {
   const showSyncWarning = useStoreState((state) => state.showSyncWarning);
   const userProfile = useStoreState((state) => state.userProfile);
   const setShowSyncWarning = useStoreActions((actions) => actions.setShowSyncWarning);
+  const showOfflineDialog = useStoreState((state) => state.showOfflineDialog);
+  const showOfflineWarning = useStoreState((state) => state.showOfflineWarning);
+  const setShowOfflineDialog = useStoreActions((actions) => actions.setShowOfflineDialog);
+  const dismissOfflineWarning = useStoreActions((actions) => actions.dismissOfflineWarning);
 
   useEffect(() => {
     document.title = configData.APP_TITLE;
@@ -139,7 +143,15 @@ const AppRoutes = () => {
           onDismiss={() => setShowSyncWarning(false)}
         />
       )}
-      <OfflineDialog />
+      <OfflineDialog
+        isOpen={showOfflineDialog}
+        onDismiss={() => setShowOfflineDialog(false)}
+      />
+      <OfflineDialog
+        isOpen={showOfflineWarning}
+        onDismiss={(dontWarnAgain) => dismissOfflineWarning(dontWarnAgain)}
+        showDontWarnAgain
+      />
     </div>
   ) : (
     <div className="App App--single-column">

@@ -439,6 +439,29 @@ header img {
   font-size: 1.4rem;
 }
 
+.offline-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.offline-heading .offline-heading-icon {
+  width: auto;
+  height: auto;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.info-popup-extra {
+  margin-top: 1rem;
+}
+
+.offline-warning-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .info-popup-title {
   margin: 0 0 1rem;
 }

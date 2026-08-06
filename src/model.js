@@ -23,6 +23,8 @@ let pushInFlight = null;
 let pushNeeded = false;
 const SYNC_WARNING_KEY = "sync_warning_dismissed_" + configData.APP_ID;
 let syncWarningShown = !!localStorage.getItem(SYNC_WARNING_KEY);
+const OFFLINE_WARNING_DISMISSED_KEY =
+  "offline_warning_dismissed_" + configData.APP_ID;
 
 async function coalescedSync(actions) {
   if (pushInFlight) {
@@ -83,6 +85,10 @@ const model = {
   // working uplink.
   dataFetchFailed: false,
   showOfflineDialog: false,
+  // First-load-only warning, shown once when the initial fetch fails but
+  // there's cached data to fall back to. Distinct from showOfflineDialog,
+  // which reopens on demand from the offline indicator at any point.
+  showOfflineWarning: false,
   helpTextDismissed: (() => {
     const dismissed = localStorage.getItem("help_text_dismissed_" + configData.APP_ID);
     return (dismissed) ? JSON.parse(dismissed) : {};
@@ -177,6 +183,11 @@ const model = {
       // show does this become a hard error.
       if (getState().program.length === 0) {
         actions.setLoadError(e.message || String(e));
+      } else if (
+        firstTime &&
+        !localStorage.getItem(OFFLINE_WARNING_DISMISSED_KEY)
+      ) {
+        actions.setShowOfflineWarning(true);
       }
     } finally {
       actions.setIsLoadingFalse();
@@ -330,6 +341,15 @@ const model = {
   }),
   setShowOfflineDialog: action((state, show) => {
     state.showOfflineDialog = show;
+  }),
+  setShowOfflineWarning: action((state, show) => {
+    state.showOfflineWarning = show;
+  }),
+  dismissOfflineWarning: action((state, dontWarnAgain) => {
+    state.showOfflineWarning = false;
+    if (dontWarnAgain) {
+      localStorage.setItem(OFFLINE_WARNING_DISMISSED_KEY, "true");
+    }
   }),
   setHelpTextDismissed: action((state, helpTextDismissed) => {
     state.helpTextDismissed = helpTextDismissed;

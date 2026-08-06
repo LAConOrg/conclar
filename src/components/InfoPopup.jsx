@@ -12,6 +12,7 @@ const InfoPopup = ({
   primaryAction,
   dismissLabel,
   onDismiss,
+  extra,
 }) => {
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const dialogRef = useRef(null);
@@ -118,10 +119,13 @@ const InfoPopup = ({
                 {primaryAction.label}
               </a>
             ))}
-          <button className="info-popup-dismiss" onClick={() => onDismissRef.current()}>
-            {dismissLabel}
-          </button>
+          {dismissLabel && (
+            <button className="info-popup-dismiss" onClick={() => onDismissRef.current()}>
+              {dismissLabel}
+            </button>
+          )}
         </div>
+        {extra && <div className="info-popup-extra">{extra}</div>}
       </div>
     </div>
   );

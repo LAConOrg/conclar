@@ -1,65 +1,54 @@
 import { useEffect, useState } from "react";
-import { useStoreState, useStoreActions } from "easy-peasy";
-import { format as formatRelativeTime } from "timeago.js";
+import { useStoreState } from "easy-peasy";
+import { MdCloudOff } from "react-icons/md";
 import configData from "../config.json";
-import { Format } from "../utils/Format";
+import { formatOfflineTitle } from "../utils/OfflineWording";
 import InfoPopup from "./InfoPopup";
+import Icon from "./Icon";
 
 const offlineConfig = configData.OFFLINE || {};
 
 /**
- * Explains the offline state: when we last managed to check for schedule
- * updates, and what happens to My Schedule changes made in the meantime.
+ * Explains the offline state: when the schedule being shown was downloaded,
+ * and what happens to My Schedule changes made in the meantime.
  *
- * Rendered once, at app level, and opened from either placement of
- * OfflineStatus.
+ * Rendered twice at app level (see AppRoutes): once on demand from either
+ * placement of OfflineStatus, and once as a one-time warning right after
+ * the first boot fetch fails with cached data to fall back to - that
+ * instance sets showDontWarnAgain, adding a checkbox that lets the caller's
+ * onDismiss permanently suppress future warnings.
+ *
+ * @param {{isOpen: boolean, onDismiss: (dontWarnAgain: boolean) => void, showDontWarnAgain?: boolean}} props
  */
-const OfflineDialog = () => {
-  const showOfflineDialog = useStoreState((state) => state.showOfflineDialog);
+const OfflineDialog = ({ isOpen, onDismiss, showDontWarnAgain = false }) => {
   const lastFetchTime = useStoreState((state) => state.lastFetchTime);
-  const show12HourTime = useStoreState((state) => state.show12HourTime);
   const userProfile = useStoreState((state) => state.userProfile);
-  useStoreState((state) => state.timeSinceLastAttempt);
   const dataFetchFailed = useStoreState((state) => state.dataFetchFailed);
-  const setShowOfflineDialog = useStoreActions(
-    (actions) => actions.setShowOfflineDialog
-  );
-  const fetchProgram = useStoreActions((actions) => actions.fetchProgram);
-  const [rechecking, setRechecking] = useState(false);
+  const [dontWarnAgain, setDontWarnAgain] = useState(false);
 
   useEffect(() => {
-    if (showOfflineDialog && !dataFetchFailed) {
-      setShowOfflineDialog(false);
+    // Force-close on reconnect ignores an unsubmitted checkbox tick - this
+    // isn't the user dismissing the dialog, so it shouldn't be able to
+    // permanently suppress future warnings.
+    if (isOpen && !dataFetchFailed) {
+      onDismiss(false);
     }
-  }, [showOfflineDialog, dataFetchFailed, setShowOfflineDialog]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, dataFetchFailed]);
 
-  if (!showOfflineDialog) {
+  useEffect(() => {
+    // The dialog stays mounted (AppRoutes just toggles isOpen), so an old
+    // tick would otherwise survive into the next time this warning opens.
+    if (isOpen) {
+      setDontWarnAgain(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) {
     return null;
   }
 
-  const recheck = async () => {
-    setRechecking(true);
-    try {
-      await fetchProgram(false);
-    } finally {
-      setRechecking(false);
-    }
-  };
-
-  const now = new Date().getTime();
-  const lastChecked = lastFetchTime
-    ? (offlineConfig.LAST_CHECKED || "Last checked @relative (@absolute).")
-        .replace(
-          "@relative",
-          formatRelativeTime(lastFetchTime, undefined, { relativeDate: now })
-        )
-        .replace(
-          "@absolute",
-          Format.formatClockTime(lastFetchTime, now, show12HourTime)
-        )
-    : offlineConfig.LAST_CHECKED_UNKNOWN ||
-      "We haven't managed to check for updates yet.";
-
+  const close = () => onDismiss(dontWarnAgain);
   const selections = userProfile?.authenticated
     ? offlineConfig.SELECTIONS_SYNCED
     : offlineConfig.SELECTIONS_LOCAL;
@@ -67,23 +56,42 @@ const OfflineDialog = () => {
   return (
     <InfoPopup
       isOpen={true}
-      heading={offlineConfig.HEADING}
-      title={offlineConfig.TITLE}
+      heading={
+        <span className="offline-heading">
+          <Icon icon={MdCloudOff} className="offline-heading-icon" />
+          {offlineConfig.HEADING || "You're offline"}
+        </span>
+      }
+      title={formatOfflineTitle(lastFetchTime)}
       body={
         <>
-          <p>{lastChecked}</p>
+          <p>
+            {offlineConfig.STALE_DATA ||
+              "Any changes made since then won't be reflected until you're back online."}
+          </p>
           {selections && <p>{selections}</p>}
         </>
       }
       primaryAction={{
-        label: rechecking
-          ? offlineConfig.RECHECKING_LABEL || "Checking…"
-          : offlineConfig.RECHECK_LABEL || "Check again",
-        onClick: recheck,
-        disabled: rechecking,
+        label: offlineConfig.CONTINUE_LABEL || "View the old schedule",
+        onClick: close,
       }}
-      dismissLabel={offlineConfig.DISMISS_LABEL || "Close"}
-      onDismiss={() => setShowOfflineDialog(false)}
+      onDismiss={close}
+      extra={
+        showDontWarnAgain && (
+          <div className="offline-warning-checkbox">
+            <input
+              id="offline-warning-dont-warn-again"
+              type="checkbox"
+              checked={dontWarnAgain}
+              onChange={(e) => setDontWarnAgain(e.target.checked)}
+            />
+            <label htmlFor="offline-warning-dont-warn-again">
+              {offlineConfig.DONT_WARN_AGAIN_LABEL || "Don't show this again"}
+            </label>
+          </div>
+        )
+      }
     />
   );
 };
