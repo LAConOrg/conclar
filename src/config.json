@@ -157,7 +157,7 @@
       "EMPTY": {
         "TEXT": "This page will show your personal convention schedule. To activate it, click the checkboxes next to items you are interested in on the program page. Your selected items will be listed on this page. You may also share items between devices on this page by scanning the QR code that will be shown at the bottom the page, or copying the link."
       },
-      "INTRO": "Your personal schedule is shown below. If you are logged in, it will automatically synced with other devices. If you are not logged in, you can use the links or QR codes at the bottom of this page to share your selections to your other devices.",
+      "INTRO": "Your personal schedule is shown below. If you are logged in, it will automatically sync with other devices. If you are not logged in, you can use the links or QR codes at the bottom of this page to share your selections to your other devices.",
       "SHARE": {
         "LABEL": "Share program selection",
         "DESCRIPTION": "Copy and paste this link to share your selections with other devices. Or point your camera at the QR code below.",
@@ -184,6 +184,13 @@
       { "PREFIX": "Tag", "PLACEHOLDER": "Tag", "SEARCHABLE": false, "HIDE": false },
       { "PREFIX": "Environment", "PLACEHOLDER": "Environment", "SEARCHABLE": false, "HIDE": false },
       { "PREFIX": "Availability", "PLACEHOLDER": "Availability", "SEARCHABLE": false, "HIDE": false }
+    ],
+    "WEIGHTS": [
+      { "VALUE": "session_streamed", "WEIGHT": -5 },
+      { "VALUE": "session_not_streamed", "WEIGHT": -4 },
+      { "VALUE": "session_replay", "WEIGHT": -3 },
+      { "VALUE": "session_no_replay", "WEIGHT": -2 },
+      { "VALUE": "session_requires_signup", "WEIGHT": -1 }
     ],
     "ICONS": {
       "session_Children's Program": { "ICON_NAME": "fa6/FaChildren" },
