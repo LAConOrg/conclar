@@ -9,6 +9,7 @@ import {
 import configData from "../config.json";
 import Icon from "./Icon";
 import UserStatus from "./UserStatus";
+import OfflineStatus from "./OfflineStatus";
 
 const Navigation = () => {
   const coreLinks = [
@@ -41,6 +42,7 @@ const Navigation = () => {
           </li>
         ))}
         <UserStatus />
+        <OfflineStatus variant="nav" />
       </ul>
     </nav>
   );

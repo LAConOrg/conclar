@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import configData from "../config.json";
 import { isSyncEnabled } from "../SyncService";
 import InfoPopup from "./InfoPopup";
+import OfflineDialog from "./OfflineDialog";
 import ScrollToTop from "./ScrollToTop";
 import Timer from "./Timer";
 import Debug from "./Debug";
@@ -33,6 +34,10 @@ const AppRoutes = () => {
   const showSyncWarning = useStoreState((state) => state.showSyncWarning);
   const userProfile = useStoreState((state) => state.userProfile);
   const setShowSyncWarning = useStoreActions((actions) => actions.setShowSyncWarning);
+  const showOfflineDialog = useStoreState((state) => state.showOfflineDialog);
+  const showOfflineWarning = useStoreState((state) => state.showOfflineWarning);
+  const setShowOfflineDialog = useStoreActions((actions) => actions.setShowOfflineDialog);
+  const dismissOfflineWarning = useStoreActions((actions) => actions.dismissOfflineWarning);
 
   useEffect(() => {
     document.title = configData.APP_TITLE;
@@ -138,6 +143,15 @@ const AppRoutes = () => {
           onDismiss={() => setShowSyncWarning(false)}
         />
       )}
+      <OfflineDialog
+        isOpen={showOfflineDialog}
+        onDismiss={() => setShowOfflineDialog(false)}
+      />
+      <OfflineDialog
+        isOpen={showOfflineWarning}
+        onDismiss={(dontWarnAgain) => dismissOfflineWarning(dontWarnAgain)}
+        showDontWarnAgain
+      />
     </div>
   ) : (
     <div className="App App--single-column">
@@ -157,11 +171,11 @@ const AppRoutes = () => {
     </div>
   );
 
-  const fetchProgram = useStoreActions((actions) => actions.fetchProgram);
+  const bootProgram = useStoreActions((actions) => actions.bootProgram);
   const fetchProfile = useStoreActions((actions) => actions.fetchProfile);
 
   useEffect(() => {
-    fetchProgram(true);
+    bootProgram();
     fetchProfile();
     // eslint-disable-next-line
   }, []);

@@ -1,22 +1,25 @@
 {
   "APP_ID": "O2021",
   "APP_TITLE": "ConClár Programme Guide",
+  "MANIFEST": {
+    "SHORT_NAME": "ConClár",
+    "THEME_COLOR": "#000000",
+    "BACKGROUND_COLOR": "#ffffff",
+    "ICONS": [
+      { "SRC": "favicon.png", "SIZES": "32x32", "TYPE": "image/png" }
+    ]
+  },
   "DATA_URLS": {
     "SCHEDULE": "/2022/schedule.json",
     "PEOPLE": "/2022/people.json"
   },
   "FETCH_OPTIONS": {
-    "cache": "reload",
-    "credentials": "omit",
-    "headers": {
-      "Origin": "http://example.com"
-    }
+    "cache": "no-cache",
+    "credentials": "omit"
   },
   "FETCH_OPTIONS_FIRST": {
-    "credentials": "omit",
-    "headers": {
-      "Origin": "http://example.com"
-    }
+    "cache": "no-cache",
+    "credentials": "omit"
   },
   "TIMEZONE": "Europe/Dublin",
   "TIMEZONECODE": "IST",
@@ -288,6 +291,18 @@
   "TIMER": {
     "FETCH_INTERVAL_MINS": 30,
     "TIMER_TICK_SECS": 15
+  },
+  "OFFLINE": {
+    "ENABLED": false,
+    "LABEL": "Offline",
+    "HEADING": "You're offline",
+    "TITLE": "Showing the last schedule we downloaded @relative.",
+    "TITLE_UNKNOWN": "Showing the last schedule we downloaded.",
+    "STALE_DATA": "Any changes made since then \u2014 room changes, cancellations, new items \u2014 won't be reflected until you're back online.",
+    "SELECTIONS_SYNCED": "Changes to My Schedule are saved and will sync when you're back online.",
+    "SELECTIONS_LOCAL": "Changes to My Schedule are saved on this device.",
+    "DONT_WARN_AGAIN_LABEL": "Don't show this again",
+    "CONTINUE_LABEL": "View the old schedule"
   },
   "DEBUG_MODE": {
     "ENABLE": false,

@@ -6,11 +6,13 @@ const InfoPopup = ({
   graphic,
   heading,
   title,
+  body,
   details,
   detailsLabel,
   primaryAction,
   dismissLabel,
   onDismiss,
+  extra,
 }) => {
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const dialogRef = useRef(null);
@@ -81,6 +83,7 @@ const InfoPopup = ({
           {title}
         </p>
         {graphic && <div className="info-popup-graphic">{graphic}</div>}
+        {body && <div className="info-popup-body">{body}</div>}
         {details && (
           <div className="info-popup-details">
             <button
@@ -102,15 +105,27 @@ const InfoPopup = ({
         )}
         <hr className="info-popup-divider" />
         <div className="info-popup-actions">
-          {primaryAction && (
-            <a href={primaryAction.href} className="info-popup-primary">
-              {primaryAction.label}
-            </a>
+          {primaryAction &&
+            (primaryAction.onClick ? (
+              <button
+                className="info-popup-primary"
+                onClick={primaryAction.onClick}
+                disabled={primaryAction.disabled}
+              >
+                {primaryAction.label}
+              </button>
+            ) : (
+              <a href={primaryAction.href} className="info-popup-primary">
+                {primaryAction.label}
+              </a>
+            ))}
+          {dismissLabel && (
+            <button className="info-popup-dismiss" onClick={() => onDismissRef.current()}>
+              {dismissLabel}
+            </button>
           )}
-          <button className="info-popup-dismiss" onClick={() => onDismissRef.current()}>
-            {dismissLabel}
-          </button>
         </div>
+        {extra && <div className="info-popup-extra">{extra}</div>}
       </div>
     </div>
   );

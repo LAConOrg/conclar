@@ -6,6 +6,7 @@ import configData from "../config.json";
 import Header from "./Header";
 import Navigation from "./Navigation";
 import Footer from "./Footer";
+import OfflineStatus from "./OfflineStatus";
 
 // The drawer only exists below this width; above it the sidebar is inline.
 // Keep in sync with the `@media (max-width: 768px)` breakpoint in App.css —
@@ -98,6 +99,7 @@ const Sidebar = () => {
           <FaBars aria-hidden="true" />
         </button>
         <h1 className="sidebar-topbar-title">{configData.APP_TITLE}</h1>
+        <OfflineStatus variant="topbar" />
       </div>
       <div className="sidebar-nav">{navContents(false)}</div>
       <dialog
