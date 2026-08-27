@@ -328,7 +328,7 @@
       "ICON_NAME": "fa/FaVideo"
     },
     {
-      "NAME": "replay",
+      "NAME": "recording",
       "TEXT": "Watch the replay",
       "WHEN": ["after"],
       "TAG": "",
