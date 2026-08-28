@@ -120,15 +120,30 @@ const ProgramItem = ({
   const linkEntries = [];
   if (configData.LINKS) {
     configData.LINKS.forEach((link) => {
-      if (item.links && item.links[link.NAME] && item.links[link.NAME].length) {
-        const enabled =
-          !link.WHEN || link.WHEN.indexOf(programTime.phaseOf(item)) >= 0;
+      const inWhenPhase =
+        !link.WHEN || link.WHEN.indexOf(programTime.phaseOf(item)) >= 0;
+      const isUnavailable =
+        link.UNAVAILABLE_TAG &&
+        item.tags.some((tag) => tag.value === link.UNAVAILABLE_TAG);
+      if (isUnavailable) {
+        if (inWhenPhase) {
+          linkEntries.push({
+            key: link.NAME,
+            name: "item-links-" + link.NAME,
+            link: null,
+            text: link.UNAVAILABLE_TEXT,
+            enabled: false,
+            iconName: link.ICON_NAME,
+            iconUrl: link.ICON_URL,
+          });
+        }
+      } else if (item.links && item.links[link.NAME] && item.links[link.NAME].length) {
         linkEntries.push({
           key: link.NAME,
           name: "item-links-" + link.NAME,
           link: item.links[link.NAME],
           text: link.TEXT,
-          enabled,
+          enabled: inWhenPhase,
           iconName: link.ICON_NAME,
           iconUrl: link.ICON_URL,
         });
