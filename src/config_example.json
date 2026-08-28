@@ -106,7 +106,8 @@
       { "PREFIX": "Division", "PLACEHOLDER": "Select division", "SEARCHABLE": false, "HIDE": true },
       { "PREFIX": "Type", "PLACEHOLDER": "Select type", "SEARCHABLE": false, "HIDE": false },
       { "PREFIX": "Tag", "PLACEHOLDER": "Select tag", "SEARCHABLE": false, "HIDE": false },
-      { "PREFIX": "Track", "PLACEHOLDER": "Select track", "SEARCHABLE": false, "HIDE": false }
+      { "PREFIX": "Track", "PLACEHOLDER": "Select track", "SEARCHABLE": false, "HIDE": false },
+      { "PREFIX": "LinkStatus", "PLACEHOLDER": "Link Status", "SEARCHABLE": false, "HIDE": true }
     ],
     "FORMAT_AS_TAG": false,
     "ICONS": {
@@ -125,7 +126,7 @@
       "SEARCHABLE": false,
       "HIDE": false
     },
-    "DONTLIST": ["Division", "days"]
+    "DONTLIST": ["Division", "days", "LinkStatus"]
   },
   "HIDE_BEFORE": {
     "HIDE": false,
@@ -170,6 +171,8 @@
     },
     {"NAME": "recording",
      "TEXT": "Click to view recording",
+     "UNAVAILABLE_TEXT": "Recording is unavailable",
+     "UNAVAILABLE_TAG": "recording_lost",
      "TAG": "",
      "WHEN": ["after"]
     }
