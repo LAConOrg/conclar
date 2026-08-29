@@ -53,9 +53,9 @@ function boundariesOf(item) {
     pastCutoffEpochMs = nearEndEpochMs + pastAdjustMs;
   }
   boundaries = {
-    // phaseOf (link WHEN gating): the "during" phase opens 20min early
+    // phaseOf (link WHEN gating): the "during" phase opens 30min early
     // and closes 10min late.
-    bufferedStartEpochMs: startEpochMs - 20 * 60000,
+    bufferedStartEpochMs: startEpochMs - 30 * 60000,
     bufferedEndEpochMs: endEpochMs + 10 * 60000,
     // isPast / hidePastItems.
     pastCutoffEpochMs,

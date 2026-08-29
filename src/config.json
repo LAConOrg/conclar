@@ -316,7 +316,7 @@
     {
       "NAME": "watch",
       "TEXT": "Watch the stream",
-      "WHEN": ["before", "during"],
+      "WHEN": ["during"],
       "TAG": "",
       "ICON_NAME": "fa/FaVideo"
     },
